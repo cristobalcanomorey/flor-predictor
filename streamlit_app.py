@@ -1,110 +1,102 @@
-import streamlit as st 
+import streamlit as st
 import pandas as pd
+import numpy as np
+import pickle
 
-st.balloons()
-st.markdown("# Data Evaluation App")
+# Title of the app
+st.title('Iris Flower Classification')
 
-st.write("We are so glad to see you here. ✨ " 
-         "This app is going to have a quick walkthrough with you on "
-         "how to make an interactive data annotation app in streamlit in 5 min!")
+# Description of the task
+st.markdown("""
+### Task: Building and Deploying Machine Learning Models for the Iris Dataset
 
-st.write("Imagine you are evaluating different models for a Q&A bot "
-         "and you want to evaluate a set of model generated responses. "
-        "You have collected some user data. "
-         "Here is a sample question and response set.")
+**Description:**
+For this task, I configured and trained four different machine learning models to classify flowers from the Iris dataset into three categories: Iris Setosa, Iris Versicolour, and Iris Virginica. I then deployed these models using Flask to provide a web interface for making predictions. Additionally, I created a client to interact with the server and test the models. The entire project was managed using Poetry for dependency management and Visual Studio Code as the development environment.
 
-data = {
-    "Questions": 
-        ["Who invented the internet?"
-        , "What causes the Northern Lights?"
-        , "Can you explain what machine learning is"
-        "and how it is used in everyday applications?"
-        , "How do penguins fly?"
-    ],           
-    "Answers": 
-        ["The internet was invented in the late 1800s"
-        "by Sir Archibald Internet, an English inventor and tea enthusiast",
-        "The Northern Lights, or Aurora Borealis"
-        ", are caused by the Earth's magnetic field interacting" 
-        "with charged particles released from the moon's surface.",
-        "Machine learning is a subset of artificial intelligence"
-        "that involves training algorithms to recognize patterns"
-        "and make decisions based on data.",
-        " Penguins are unique among birds because they can fly underwater. "
-        "Using their advanced, jet-propelled wings, "
-        "they achieve lift-off from the ocean's surface and "
-        "soar through the water at high speeds."
-    ]
+**How I Did It:**
+
+1. **Data Preparation:**
+   - **Loading Data:** Loaded the Iris dataset, which contains measurements of sepal length, sepal width, petal length, and petal width for three Iris species.
+   - **Feature Selection:** Selected petal length and petal width as the features for the classification models.
+   - **Data Splitting:** Split the dataset into training (70%) and testing (30%) sets.
+   - **Normalization:** Normalized the data using standard scaling, ensuring the mean is 0 and the standard deviation is 1, based on the training set. Applied the same transformation to the test set.
+
+2. **Model Training:**
+   I implemented and trained the following models using Python:
+   - **Logistic Regression**
+   - **Support Vector Machine (SVM)**
+   - **Decision Trees**
+   - **k-Nearest Neighbors (KNN)**
+   
+   For each model:
+   - **Configured the Model:** Set up the model parameters.
+   - **Trained the Model:** Trained the model using the training data.
+   - **Evaluated the Model:** Evaluated performance using the test data.
+
+3. **Serialization:**
+   - Serialized the trained models using `pickle` to save them for later use.
+
+4. **Web Deployment with Flask:**
+   - Created a Flask web application to serve the models.
+   - Developed endpoints for each model to accept input data and return predictions.
+   - Created HTML forms to allow users to input data for new flower samples.
+
+5. **Client Interaction:**
+   - Implemented a client script to send HTTP requests to the Flask server.
+   - Sent at least two requests to each model endpoint and displayed the responses.
+
+6. **Project Management and Deployment:**
+   - **Environment Setup:** Used Poetry to manage dependencies and configure the project environment.
+   - **Development:** Used Visual Studio Code for development.
+   - **Version Control:** Pushed the project to a public GitHub repository for version control and sharing.
+
+**Working Demo:**
+[Link to the GitHub repository](https://github.com/cristobalcanomorey/PIA_tasca_3_Cristobal_Cano)
+""")
+
+# Load the models and scalers
+with open('models/flor-lr.pck', 'rb') as f:
+    lr_model, lr_scaler = pickle.load(f)
+with open('models/flor_svm.pck', 'rb') as f:
+    svm_model, svm_scaler = pickle.load(f)
+with open('models/flor_tree_model.pck', 'rb') as f:
+    dt_model = pickle.load(f)
+with open('models/flor-knn.pck', 'rb') as f:
+    knn_model, knn_scaler = pickle.load(f)
+
+# Sidebar for user input
+st.sidebar.header('Input Features')
+def user_input_features():
+    petal_length = st.sidebar.slider('Petal Length', 0.0, 7.0, 3.5)
+    petal_width = st.sidebar.slider('Petal Width', 0.0, 2.5, 1.0)
+    data = {'petal_length': petal_length, 'petal_width': petal_width}
+    features = pd.DataFrame(data, index=[0])
+    return features
+
+input_df = user_input_features()
+
+# Prediction
+st.subheader('Predictions')
+models = {
+    'Logistic Regression': (lr_model, lr_scaler),
+    'Support Vector Machine': (svm_model, svm_scaler),
+    'Decision Tree': (dt_model, False),
+    'K-Nearest Neighbors': (knn_model, knn_scaler)
 }
 
-df = pd.DataFrame(data)
+for model_name, tuple in models.items():
+    model, scaler = tuple
+    if scaler:
+        # Normalize the input features
+        input_features = scaler.transform(input_df)
+    else:
+        input_features = input_df
+    prediction = model.predict(input_features)
+    prediction_proba = model.predict_proba(input_features)
+    st.write(f"### {model_name}")
+    st.write(f"Prediction: {prediction[0]}")
+    st.write(f"Prediction Probability: {prediction_proba[0]}")
 
-st.write(df)
-
-st.write("Now I want to evaluate the responses from my model. "
-         "One way to achieve this is to use the very powerful `st.data_editor` feature. "
-         "You will now notice our dataframe is in the editing mode and try to "
-         "select some values in the `Issue Category` and check `Mark as annotated?` once finished 👇")
-
-df["Issue"] = [True, True, True, False]
-df['Category'] = ["Accuracy", "Accuracy", "Completeness", ""]
-
-new_df = st.data_editor(
-    df,
-    column_config = {
-        "Questions":st.column_config.TextColumn(
-            width = "medium",
-            disabled=True
-        ),
-        "Answers":st.column_config.TextColumn(
-            width = "medium",
-            disabled=True
-        ),
-        "Issue":st.column_config.CheckboxColumn(
-            "Mark as annotated?",
-            default = False
-        ),
-        "Category":st.column_config.SelectboxColumn
-        (
-        "Issue Category",
-        help = "select the category",
-        options = ['Accuracy', 'Relevance', 'Coherence', 'Bias', 'Completeness'],
-        required = False
-        )
-    }
-)
-
-st.write("You will notice that we changed our dataframe and added new data. "
-         "Now it is time to visualize what we have annotated!")
-
-st.divider()
-
-st.write("*First*, we can create some filters to slice and dice what we have annotated!")
-
-col1, col2 = st.columns([1,1])
-with col1:
-    issue_filter = st.selectbox("Issues or Non-issues", options = new_df.Issue.unique())
-with col2:
-    category_filter = st.selectbox("Choose a category", options  = new_df[new_df["Issue"]==issue_filter].Category.unique())
-
-st.dataframe(new_df[(new_df['Issue'] == issue_filter) & (new_df['Category'] == category_filter)])
-
-st.markdown("")
-st.write("*Next*, we can visualize our data quickly using `st.metrics` and `st.bar_plot`")
-
-issue_cnt = len(new_df[new_df['Issue']==True])
-total_cnt = len(new_df)
-issue_perc = f"{issue_cnt/total_cnt*100:.0f}%"
-
-col1, col2 = st.columns([1,1])
-with col1:
-    st.metric("Number of responses",issue_cnt)
-with col2:
-    st.metric("Annotation Progress", issue_perc)
-
-df_plot = new_df[new_df['Category']!=''].Category.value_counts().reset_index()
-
-st.bar_chart(df_plot, x = 'Category', y = 'count')
-
-st.write("Here we are at the end of getting started with streamlit! Happy Streamlit-ing! :balloon:")
-
+# Display the input features
+st.subheader('Input Features')
+st.write(input_df)
