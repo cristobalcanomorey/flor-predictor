@@ -2,6 +2,7 @@ import streamlit as st
 import pandas as pd
 import numpy as np
 import pickle
+from sklearn import datasets
 
 # Title of the app
 st.title('Iris Flower Classification')
@@ -57,9 +58,9 @@ For this task, I configured and trained four different machine learning models t
 # Load the models and scalers
 with open('models/flor-lr.pck', 'rb') as f:
     lr_model, lr_scaler = pickle.load(f)
-with open('models/flor_svm.pck', 'rb') as f:
+with open('models/flor-svm.pck', 'rb') as f:
     svm_model, svm_scaler = pickle.load(f)
-with open('models/flor_tree_model.pck', 'rb') as f:
+with open('models/flor-tree_model.pck', 'rb') as f:
     dt_model = pickle.load(f)
 with open('models/flor-knn.pck', 'rb') as f:
     knn_model, knn_scaler = pickle.load(f)
@@ -92,10 +93,14 @@ for model_name, tuple in models.items():
     else:
         input_features = input_df
     prediction = model.predict(input_features)
-    prediction_proba = model.predict_proba(input_features)
+    
     st.write(f"### {model_name}")
     st.write(f"Prediction: {prediction[0]}")
-    st.write(f"Prediction Probability: {prediction_proba[0]}")
+    
+    if hasattr(model, "predict_proba"):
+        prediction_proba = model.predict_proba(input_features)
+        st.write(f"Prediction Probability: {prediction_proba[0]}")
+
 
 # Display the input features
 st.subheader('Input Features')
