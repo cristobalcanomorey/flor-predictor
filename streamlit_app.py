@@ -78,7 +78,7 @@ with col5:
 with col6:
     st.image('imgs/vscode.png', caption='vscode', width=50)
 
-st.write("""**Working Demo:**
+st.write("""**Github repo:**
 [Course task nº3](https://github.com/cristobalcanomorey/PIA_tasca_3_Cristobal_Cano)
 """)
 
